@@ -14,6 +14,7 @@ from mediapipe.framework.formats import landmark_pb2
 import cv2
 import random
 import time
+import pygame
 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -33,7 +34,7 @@ class fruit:
        self.screen_width = screen_width
        self.screen_height = screen_height
        self.respawn()
-       self.sprite = None
+       self.sprite = cv2.imread('Orange.jpg', -1)
        print("done")
    def respawn(self):
        """
@@ -41,9 +42,8 @@ class fruit:
        """
        self.x = random.randint(50, self.screen_width)
        self.y =  self.screen_height - 50   
-   def draw(self, image):
-       cv2.circle(image, (self.x, self.y), 25, self.color, 5)
-
+    
+   
       
 class Game:
     def __init__(self):
@@ -51,7 +51,6 @@ class Game:
         self.score = 0
         self.level = 0
         #Initialize 100 enemy objects into an array
-        self.green_enemy = fruit(GREEN)
         # Create the hand detector
         base_options = BaseOptions(model_asset_path='data/hand_landmarker.task')
         options = HandLandmarkerOptions(base_options=base_options,
@@ -63,6 +62,8 @@ class Game:
 
         # TODO: Load video
         self.video = cv2.VideoCapture(1)
+        frame = self.video.read()[1]
+        self.green_enemy = fruit(GREEN)
 
     
     def draw_landmarks_on_hand(self, image, detection_result):
@@ -93,7 +94,7 @@ class Game:
                                        solutions.drawing_styles.get_default_hand_connections_style())
 
     
-    def check_enemy_intercept(self, finger_x, finger_y, enemy, image, thumb_x, thumb_y, enemy2):
+    def check_enemy_intercept(self, finger_x, finger_y, enemy, image):
         """
         Determines if the finger position overlaps with the 
         enemy's position. Respawns and draws the enemy and 
@@ -105,15 +106,12 @@ class Game:
         """
         # Calculate the distance between the finger and the enemy
         distance = ((finger_x - enemy.x)**2 + (finger_y - enemy.y)**2)**0.5
-        distance2  = ((thumb_x - enemy2.x)**2 + (thumb_y - enemy2.y)**2)**0.5
         #Determines if the finger position overlaps with the enemy's position.
-        if distance  < 25 and distance2  < 25:
+        if distance  < 25:
             #Respawns the enemy
             enemy.respawn()
             #Draws the enemy
             enemy.draw(image)
-            enemy2.respawn()
-            enemy2.draw(image)
             #Increases the score
             self.score += 1
             print(self.score)
@@ -143,16 +141,15 @@ class Game:
             pixelCoord = DrawingUtil._normalized_to_pixel_coordinates(finger.x, finger.y, imageWidth, imageHeight)  
 
             #get cordinates of just thumb
-            Thumb = hand_landmarks[HandLandmarkPoints.THUMB_TIP.value]
 
             #map the cordinates back to screen dimensions
-            pixelCoord2 = DrawingUtil._normalized_to_pixel_coordinates(Thumb.x, Thumb.y, imageWidth, imageHeight)  
-            if pixelCoord and pixelCoord2:
+           
+            if pixelCoord:
                 #draw a green circle around the index finger
                 cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
                 #draw a red circle around the thumb 
-                cv2.circle(image,(pixelCoord2[0],pixelCoord2[1]),25, RED, 5)
-                self.check_enemy_intercept(pixelCoord[0], pixelCoord[1], self.green_enemy, image, pixelCoord2[0], pixelCoord2[1], self.red_enemy)
+    
+                self.check_enemy_intercept(pixelCoord[0], pixelCoord[1], self.green_enemy, image)
 
 
                 
