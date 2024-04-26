@@ -7,11 +7,13 @@ def fruit_overlay():
     # Capture video from the webcam
     video = cv2.VideoCapture(1)
     x= random.randint(0, 640)
+    y = 0
     while True:
         frame = video.read()[1]
         # Where to place the cowboy hat on the screen
-        y1, y2 =  50 , 50 + Orange.shape[0]
+        y1, y2 =  y , y + Orange.shape[0]
         x1, x2 = x, x + Orange.shape[1]
+        y = y + 1
 
         # Saving the alpha values (transparencies)
         alpha = Orange[:, :, 3] / 255.0
