@@ -4,6 +4,7 @@ import mediapipe as mp
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 import time
+import math
 
 
 RED = (255, 0, 0)
@@ -78,10 +79,16 @@ class Game:
             finger_y (float): y-coordinates of index finger
             image (_type_): The image to draw on
         """
+        print("f")
+        print(finger_x)
+        print("f")
+        print(finger_y)
         # Calculate the distance between the finger and the enemy
         distance = ((finger_x - fruitx)**2 + (finger_y - fruity)**2)**0.5
+        print("distance")
+        print(distance)
         #Determines if the finger position overlaps with the enemy's position.
-        if distance  < 200:
+        if distance < 200:
             #Draws the enemy
             self.score += 1
             print(self.score)
@@ -160,7 +167,6 @@ class Game:
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             #the image comes mirrored - flip it
-            image = cv2.flip(image, 1)
             if self.level == 0 and self.score == 10:
                     #end the game
                 end_time = time.time()
@@ -170,16 +176,20 @@ class Game:
             
 
             #draw score onto screen
-            cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = GREEN,thickness = 2)
+        
 
             # Convert the image to a readable format and find the hands
             to_detect = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
             results = self.detector.detect(to_detect)
-            fx = (x1+x2)/2
-            fy = (y1+y2)/2
+            fy =  y + y + Orange.shape[0]
+            fx = x + x + Orange.shape[1]
+            fy = fy/2
+            fx = fx/2
             print(fx)
             print(fy)
             self.check_fruit_kill(image, results,fx,fy)
+            image = cv2.flip(image, 1)
+            cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = GREEN,thickness = 2)
 
             # Draw the hand landmarks
             #self.draw_landmarks_on_hand(image, results)
