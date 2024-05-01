@@ -79,21 +79,14 @@ class Game:
             finger_y (float): y-coordinates of index finger
             image (_type_): The image to draw on
         """
-        print("f")
-        print(finger_x)
-        print("f")
-        print(finger_y)
         # Calculate the distance between the finger and the enemy
         distance = ((finger_x - fruitx)**2 + (finger_y - fruity)**2)**0.5
-        print("distance")
-        print(distance)
+        self.hit = False
         #Determines if the finger position overlaps with the enemy's position.
-        if distance < 200:
+        if distance < 100:
             #Draws the enemy
-            self.score += 1
-            print(self.score)
-            hit = True
-        pass
+            self.hit = True
+        return self.hit
 
     def check_fruit_kill(self, image, detection_result,fruitx,fruity):
         """
@@ -117,19 +110,19 @@ class Game:
 
             #map the cordinates back to screen dimensions
             pixelCoord = DrawingUtil._normalized_to_pixel_coordinates(finger.x, finger.y, imageWidth, imageHeight)  
-
-
+            
+            self.hit = False
             #map the cordinates back to screen dimensions
             if pixelCoord:
                 #draw a green circle around the index finger
                 cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
                 #draw a red circle around the thumb 
-                self.check_fruit_intercept(pixelCoord[0], pixelCoord[1],fruitx,fruity)
-
+                self.hit = self.check_fruit_intercept(pixelCoord[0], pixelCoord[1],fruitx,fruity)
+            return self.hit
 
                 
     
-    def run(self,hit):
+    def run(self):
         """
         Main game loop. Runs until the 
         user presses "q".
@@ -137,27 +130,36 @@ class Game:
         # TODO: Modify loop condition
         x= random.randint(0, 640)
         y = 0  
+        self.hit = False
         while self.video.isOpened():
             Orange = cv2.imread('data/Orange.png', -1)
             # Get the current frame
             frame = self.video.read()[1]
             
-            if self.score < 1:
-                frame = self.video.read()[1]
         # Where to place the cowboy hat on the screen
-                y1, y2 =  y , y + Orange.shape[0]
-                x1, x2 = x, x + Orange.shape[1]
-                y = y + 1
-                
+        
+            frame = self.video.read()[1]
+        # Where to place the cowboy hat on the screen
+            y1, y2 =  y , y + Orange.shape[0]
+            x1, x2 = x, x + Orange.shape[1]
+            y = y + 1
+            if self.hit == True:
+                x= random.randint(0, 640)
+                y = 0
+                self.hit = False 
+                self.score = self.score + 1
+                print(self.score)
+                # print("hit") 
+            
     
 
         # Saving the alpha values (transparencies)
-                alpha = Orange[:, :, 3] / 255.0
+            alpha = Orange[:, :, 3] / 255.0
 
         # Overlays the image onto the frame (Don't change this)
-                for c in range(0, 3):
-                    frame[y1:y2, x1:x2, c] = (alpha * Orange[:, :, c] +
-                                            (1.0 - alpha) * frame[y1:y2, x1:x2, c])
+            for c in range(0, 3):
+                frame[y1:y2, x1:x2, c] = (alpha * Orange[:, :, c] +
+                                        (1.0 - alpha) * frame[y1:y2, x1:x2, c])
         
         # Display the resulting frame
             cv2.imshow('Orange', frame)
@@ -185,9 +187,8 @@ class Game:
             fx = x + x + Orange.shape[1]
             fy = fy/2
             fx = fx/2
-            print(fx)
-            print(fy)
-            self.check_fruit_kill(image, results,fx,fy)
+            self.hit = self.check_fruit_kill(image, results,fx,fy)
+            print(self.hit)
             image = cv2.flip(image, 1)
             cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = GREEN,thickness = 2)
 
@@ -195,7 +196,7 @@ class Game:
             #self.draw_landmarks_on_hand(image, results)
             # Change the color of the frame back
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            cv2.imshow("Hand Tracking", image)
+            cv2.imshow("Fruit Ninja", image)
             # Break the loop if the user presses 'q'
             if cv2.waitKey(50) & 0xFF == ord('q'):
                 print(self.score)
@@ -215,4 +216,4 @@ class Game:
 
 if __name__ == "__main__":        
     g = Game()
-    g.run(False)
+    g.run()
