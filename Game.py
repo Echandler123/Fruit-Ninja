@@ -142,12 +142,17 @@ class Game:
         # Where to place the cowboy hat on the screen
             y1, y2 =  y , y + Orange.shape[0]
             x1, x2 = x, x + Orange.shape[1]
-            y = y + 1
+            y = y + 20
             if self.hit == True:
                 x= random.randint(0, 640)
                 y = 0
                 self.hit = False 
                 self.score = self.score + 1
+                print(self.score)
+            elif y == 480:
+                x= random.randint(0, 640)
+                y = 0
+                self.hit = False 
                 print(self.score)
                 # print("hit") 
             
