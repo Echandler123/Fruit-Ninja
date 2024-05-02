@@ -115,7 +115,7 @@ class Game:
             #map the cordinates back to screen dimensions
             if pixelCoord:
                 #draw a green circle around the index finger
-                cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
+                #cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
                 #draw a red circle around the thumb 
                 self.hit = self.check_fruit_intercept(pixelCoord[0], pixelCoord[1],fruitx,fruity)
             return self.hit
@@ -133,6 +133,7 @@ class Game:
         self.hit = False
         while self.video.isOpened():
             Orange = cv2.imread('data/Orange.png', -1)
+            Orange2 = cv2.imread('data/Orange_slice_1.png', -1)
             # Get the current frame
             frame = self.video.read()[1]
             
@@ -142,15 +143,26 @@ class Game:
         # Where to place the cowboy hat on the screen
             y1, y2 =  y , y + Orange.shape[0]
             x1, x2 = x, x + Orange.shape[1]
+            y3,y4 = y, y + Orange2.shape[0]
             y = y + 20
+            x3,x4 = x, x + Orange2.shape[1]
+    
+           
+
             if self.hit == True:
-                x= random.randint(0, 640)
+                # x= random.randint(0,720 + Orange.shape[0])
+                print(image.shape)
                 y = 0
                 self.hit = False 
                 self.score = self.score + 1
                 print(self.score)
+                Orange = cv2.imread('data/Orange_slice_2.png', -1)
+                x2 += 50
+                x1 += 50
+                x3 = x3 - 100
+                x4 = x4 - 100
             elif y == 480:
-                x= random.randint(0, 640)
+                x= random.randint(0, 720 + Orange.shape[0])
                 y = 0
                 self.hit = False 
                 print(self.score)
@@ -160,7 +172,6 @@ class Game:
 
         # Saving the alpha values (transparencies)
             alpha = Orange[:, :, 3] / 255.0
-
         # Overlays the image onto the frame (Don't change this)
             for c in range(0, 3):
                 frame[y1:y2, x1:x2, c] = (alpha * Orange[:, :, c] +
@@ -168,10 +179,21 @@ class Game:
         
         # Display the resulting frame
             cv2.imshow('Orange', frame)
+            alpha = Orange2[:, :, 3] / 255.0
+
+        # Overlays the image onto the frame (Don't change this)
+            for c in range(0, 3):
+                frame[y3:y4, x3:x4, c] = (alpha * Orange2[:, :, c] +
+                                        (1.0 - alpha) * frame[y3:y4, x3:x4, c])
+        
+        # Display the resulting frame
+            if self.hit == True:
+                cv2.imshow('Orange2', frame)
             
 
             # Convert it to an RGB image
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
 
             #the image comes mirrored - flip it
             if self.level == 0 and self.score == 10:
@@ -194,6 +216,7 @@ class Game:
             fx = fx/2
             self.hit = self.check_fruit_kill(image, results,fx,fy)
             print(self.hit)
+            print(image.shape)
             image = cv2.flip(image, 1)
             cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = GREEN,thickness = 2)
 
