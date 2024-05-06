@@ -128,7 +128,9 @@ class Game:
         user presses "q".
         """    
         # TODO: Modify loop condition
-        x= random.randint(0, 640)
+        
+        #x = random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 - (Orange2.shape[1] + 150 + Orange.shape[1]))
+        x = random.randint(407, 1280 - 411)
         y = 0  
         self.hit = False
         while self.video.isOpened():
@@ -151,18 +153,17 @@ class Game:
 
             if self.hit == True:
                 # x= random.randint(0,720 + Orange.shape[0])
-                print(image.shape)
                 y = 0
-                self.hit = False 
                 self.score = self.score + 1
                 print(self.score)
                 Orange = cv2.imread('data/Orange_slice_2.png', -1)
-                x2 += 50
-                x1 += 50
-                x3 = x3 - 100
-                x4 = x4 - 100
+                x2 -= 50
+                x1 -= 50
+                x3 = x3 + 100
+                x4 = x4 + 100
+                x= random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 - (Orange2.shape[1] + 150 + Orange.shape[1]))
             elif y == 480:
-                x= random.randint(0, 720 + Orange.shape[0])
+                x= random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 -  (Orange2.shape[1] + 150 + Orange.shape[1]))
                 y = 0
                 self.hit = False 
                 print(self.score)
@@ -176,19 +177,23 @@ class Game:
             for c in range(0, 3):
                 frame[y1:y2, x1:x2, c] = (alpha * Orange[:, :, c] +
                                         (1.0 - alpha) * frame[y1:y2, x1:x2, c])
+            print(x1)
+            print(x2)
         
         # Display the resulting frame
             cv2.imshow('Orange', frame)
-            alpha = Orange2[:, :, 3] / 255.0
-
-        # Overlays the image onto the frame (Don't change this)
-            for c in range(0, 3):
-                frame[y3:y4, x3:x4, c] = (alpha * Orange2[:, :, c] +
-                                        (1.0 - alpha) * frame[y3:y4, x3:x4, c])
+            
         
         # Display the resulting frame
-            if self.hit == True:
-                cv2.imshow('Orange2', frame)
+            if self.hit == True and x2 >= 100:
+                alpha = Orange2[:, :, 3] / 255.0
+
+        # Overlays the image onto the frame (Don't change this)
+                for c in range(0, 3):
+                    frame[y3:y4, x3:x4, c] = (alpha * Orange2[:, :, c] +
+                                            (1.0 - alpha) * frame[y3:y4, x3:x4, c])
+            cv2.imshow('Orange2', frame)
+            self.hit = False 
             
 
             # Convert it to an RGB image
@@ -238,9 +243,6 @@ class Game:
             
         self.video.release
         cv2.destroyAllWindows()
-    
-        
-
 
 if __name__ == "__main__":        
     g = Game()
