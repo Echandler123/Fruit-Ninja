@@ -1,3 +1,4 @@
+# Elijah Chandler
 import cv2
 import random
 import mediapipe as mp
@@ -5,7 +6,6 @@ from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 import time
 import math
-
 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -19,15 +19,12 @@ HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 DrawingUtil = mp.solutions.drawing_utils
     
-    
-        
       
 class Game:
     def __init__(self):
         # Load game elements
         self.score = 0
         self.level = 0
-        #Initialize 100 enemy objects into an array
         # Create the hand detector
         base_options = BaseOptions(model_asset_path='data/hand_landmarker.task')
         options = HandLandmarkerOptions(base_options=base_options,
@@ -35,9 +32,8 @@ class Game:
         self.detector = HandLandmarker.create_from_options(options)
         #start timer
         self.start_time = time.time()
-
-
-        # TODO: Load video
+        
+        # Loads video
         self.video = cv2.VideoCapture(1)
 
     
@@ -69,7 +65,7 @@ class Game:
                                        solutions.drawing_styles.get_default_hand_connections_style())
 
     
-    def check_fruit_intercept(self, finger_x, finger_y,fruitx,fruity):
+    def check_fruit_intercept(self, finger_x, finger_y, fruitx, fruity):
         """
         Determines if the finger position overlaps with the 
         enemy's position. Respawns and draws the enemy and 
@@ -82,13 +78,12 @@ class Game:
         # Calculate the distance between the finger and the enemy
         distance = ((finger_x - fruitx)**2 + (finger_y - fruity)**2)**0.5
         self.hit = False
-        #Determines if the finger position overlaps with the enemy's position.
+        # Determines if the finger position overlaps with the enemy's position and returns true if so
         if distance < 100:
-            #Draws the enemy
             self.hit = True
         return self.hit
 
-    def check_fruit_kill(self, image, detection_result,fruitx,fruity):
+    def check_fruit_kill(self, image, detection_result, fruitx, fruity):
         """
         Draws a green circle on the index finger 
         and calls a method to check if we've intercepted
@@ -105,18 +100,17 @@ class Game:
         for idx in range(len(hand_landmarks_list)):
             hand_landmarks = hand_landmarks_list[idx] 
 
-            #get cordinates of just index finger
+            # Get cordinates of just index finger
             finger = hand_landmarks[HandLandmarkPoints.INDEX_FINGER_TIP.value]
 
-            #map the cordinates back to screen dimensions
+            # Map the cordinates back to screen dimensions
             pixelCoord = DrawingUtil._normalized_to_pixel_coordinates(finger.x, finger.y, imageWidth, imageHeight)  
             
             self.hit = False
-            #map the cordinates back to screen dimensions
+            # Return if the finger hit the fruit
             if pixelCoord:
-                #draw a green circle around the index finger
-                #cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
-                #draw a red circle around the thumb 
+                # Draw a green circle around the index finger
+                # cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
                 self.hit = self.check_fruit_intercept(pixelCoord[0], pixelCoord[1],fruitx,fruity)
             return self.hit
 
@@ -127,43 +121,47 @@ class Game:
         Main game loop. Runs until the 
         user presses "q".
         """    
-        # TODO: Modify loop condition
         
-        #x = random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 - (Orange2.shape[1] + 150 + Orange.shape[1]))
-        x = random.randint(407, 1280 - 411)
+        # x = random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 - (Orange2.shape[1] + 150 + Orange.shape[1]))
+        x_boundary  = 407
+        y_boundary = 1280 - 411
+        # Generates where the fruit will first spawn
+        x = random.randint(x_boundary, y_boundary)
         y = 0  
         self.hit = False
+        inc = 20
         while self.video.isOpened():
-            Orange = cv2.imread('data/Orange.png', -1)
-            Orange2 = cv2.imread('data/Orange_slice_1.png', -1)
+            
+            orange = cv2.imread('data/Orange.png', -1)
+            orange2 = cv2.imread('data/Orange_slice_1.png', -1)
             # Get the current frame
             frame = self.video.read()[1]
             
-        # Where to place the cowboy hat on the screen
         
             frame = self.video.read()[1]
-        # Where to place the cowboy hat on the screen
-            y1, y2 =  y , y + Orange.shape[0]
-            x1, x2 = x, x + Orange.shape[1]
-            y3,y4 = y, y + Orange2.shape[0]
-            y = y + 20
-            x3,x4 = x, x + Orange2.shape[1]
+            # Calculating the courdinates of the fruit
+            y1, y2 =  y , y + orange.shape[0]
+            x1, x2 = x, x + orange.shape[1]
+            y3,y4 = y, y + orange2.shape[0]
+            y = y + inc
+            x3,x4 = x, x + orange2.shape[1]
     
            
-
+            # When the fruit is hit increases the score and calculates the courdinates for the split fruit images 
+            # and the spawn courdinates for a new fruit
             if self.hit == True:
-                # x= random.randint(0,720 + Orange.shape[0])
                 y = 0
                 self.score = self.score + 1
                 print(self.score)
-                Orange = cv2.imread('data/Orange_slice_2.png', -1)
+                orange = cv2.imread('data/Orange_slice_2.png', -1)
                 x2 -= 50
                 x1 -= 50
                 x3 = x3 + 100
                 x4 = x4 + 100
-                x= random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 - (Orange2.shape[1] + 150 + Orange.shape[1]))
+                x = random.randint((orange2.shape[0] + 100 + orange.shape[1]), 1280 - (orange2.shape[1] + 100 + orange.shape[1]))
+            # When the fruit reaches the bottom of the screen it creates the new spawn courdinates for the fruit
             elif y == 480:
-                x= random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 -  (Orange2.shape[1] + 150 + Orange.shape[1]))
+                x = random.randint((orange2.shape[0] + 100 + orange.shape[1]), 1280 -  (orange2.shape[1] + 100 + orange.shape[1]))
                 y = 0
                 self.hit = False 
                 print(self.score)
@@ -171,27 +169,20 @@ class Game:
             
     
 
-        # Saving the alpha values (transparencies)
-            alpha = Orange[:, :, 3] / 255.0
-        # Overlays the image onto the frame (Don't change this)
-            for c in range(0, 3):
-                frame[y1:y2, x1:x2, c] = (alpha * Orange[:, :, c] +
-                                        (1.0 - alpha) * frame[y1:y2, x1:x2, c])
-            print(x1)
-            print(x2)
+            # Saving the alpha values (transparencies)
+            alpha = orange[:, :, 3] / 255.0
+            self.overlay(y1, y2, x1, x2, alpha, orange, frame)
         
-        # Display the resulting frame
+            # Display the resulting frame
             cv2.imshow('Orange', frame)
             
         
-        # Display the resulting frame
+            # Display the resulting frame for the second image of the split fruit if the fruit was hit
             if self.hit == True and x2 >= 100:
-                alpha = Orange2[:, :, 3] / 255.0
+                alpha = orange2[:, :, 3] / 255.0
 
-        # Overlays the image onto the frame (Don't change this)
-                for c in range(0, 3):
-                    frame[y3:y4, x3:x4, c] = (alpha * Orange2[:, :, c] +
-                                            (1.0 - alpha) * frame[y3:y4, x3:x4, c])
+            
+                self.overlay(y3, y4, x3, x4, alpha, orange2, frame)
             cv2.imshow('Orange2', frame)
             self.hit = False 
             
@@ -199,50 +190,38 @@ class Game:
             # Convert it to an RGB image
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-
-            #the image comes mirrored - flip it
-            if self.level == 0 and self.score == 10:
+            #if self.level == 0 and self.score == 10:
                     #end the game
-                end_time = time.time()
-                print("Time taken to kill 10 enemies: ", end_time - self.start_time)
-                self.video.release
-                self.level = 1
-            
-
-            #draw score onto screen
-        
-
+             #   end_time = time.time()
+             #   print("Time taken to kill 10 enemies: ", end_time - self.start_time)
+              #  self.video.release
+             #   self.level = 1
             # Convert the image to a readable format and find the hands
             to_detect = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
             results = self.detector.detect(to_detect)
-            fy =  y + y + Orange.shape[0]
-            fx = x + x + Orange.shape[1]
+            fy =  y + y + orange.shape[0]
+            fx = x + x + orange.shape[1]
+            # Calculating middle of the fruit image
             fy = fy/2
             fx = fx/2
             self.hit = self.check_fruit_kill(image, results,fx,fy)
-            print(self.hit)
-            print(image.shape)
             image = cv2.flip(image, 1)
             cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = GREEN,thickness = 2)
-
-            # Draw the hand landmarks
-            #self.draw_landmarks_on_hand(image, results)
             # Change the color of the frame back
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imshow("Fruit Ninja", image)
             # Break the loop if the user presses 'q'
             if cv2.waitKey(50) & 0xFF == ord('q'):
                 print(self.score)
-                break
-        #Add an option to the game that allows users to play in a timed mode. It would be helpful to add
-        #an instance variable like self.level to keep track of what version of the game the user is
-        #playing.
-        #See how long it takes the user to kill 10 enemies. You can use the time class that’s imported and
-        #the time.time() method. End the program when 10 enemies are killed and display the time in the
-        #console.
-            
+                break   
         self.video.release
         cv2.destroyAllWindows()
+    # Overlays the of the fruit onto the frame 
+    def overlay(self, y1, y2, x1, x2, alpha,orange, frame):
+        for c in range(0, 3):
+            frame[y1:y2, x1:x2, c] = (alpha * orange[:, :, c] +
+                                    (1.0 - alpha) * frame[y1:y2, x1:x2, c])
+        return frame
 
 if __name__ == "__main__":        
     g = Game()
