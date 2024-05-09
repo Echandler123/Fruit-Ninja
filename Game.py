@@ -1,4 +1,5 @@
 # Elijah Chandler
+# 5/18/24
 import cv2
 import random
 import mediapipe as mp
@@ -99,8 +100,6 @@ class Game:
             self.hit = False
             # Return if the finger hit the fruit
             if pixelCoord:
-                # Draw a green circle around the index finger
-                # cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
                 self.hit = self.check_fruit_intercept(pixelCoord[0], pixelCoord[1],fruitx,fruity)
             return self.hit           
     
