@@ -19,7 +19,6 @@ HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 DrawingUtil = mp.solutions.drawing_utils
     
-      
 class Game:
     def __init__(self):
         # Load game elements
@@ -32,13 +31,12 @@ class Game:
         self.detector = HandLandmarker.create_from_options(options)
         #start timer
         self.start_time = time.time()
-        
         # Loads video
         self.video = cv2.VideoCapture(1)
-
     
     def draw_landmarks_on_hand(self, image, detection_result):
         """
+        Code from the FingerTrackingGame lab
         Draws all the landmarks on the hand
         Args:
             image (Image): Image to draw on
@@ -46,24 +44,20 @@ class Game:
         """
         # Get a list of the landmarks
         hand_landmarks_list = detection_result.hand_landmarks
-        
         # Loop through the detected hands to visualize.
         for idx in range(len(hand_landmarks_list)):
             hand_landmarks = hand_landmarks_list[idx]
-
             # Save the landmarks into a NormalizedLandmarkList
             hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
             hand_landmarks_proto.landmark.extend([
             landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmarks
             ])
-
             # Draw the landmarks on the hand
             DrawingUtil.draw_landmarks(image,
                                        hand_landmarks_proto,
                                        solutions.hands.HAND_CONNECTIONS,
                                        solutions.drawing_styles.get_default_hand_landmarks_style(),
                                        solutions.drawing_styles.get_default_hand_connections_style())
-
     
     def check_fruit_intercept(self, finger_x, finger_y, fruitx, fruity):
         """
@@ -95,34 +89,26 @@ class Game:
         # Get image details
         imageHeight, imageWidth = image.shape[:2]
         hand_landmarks_list = detection_result.hand_landmarks
-        
         # Loop through the detected hands to visualize.
         for idx in range(len(hand_landmarks_list)):
             hand_landmarks = hand_landmarks_list[idx] 
-
             # Get cordinates of just index finger
             finger = hand_landmarks[HandLandmarkPoints.INDEX_FINGER_TIP.value]
-
             # Map the cordinates back to screen dimensions
             pixelCoord = DrawingUtil._normalized_to_pixel_coordinates(finger.x, finger.y, imageWidth, imageHeight)  
-            
             self.hit = False
             # Return if the finger hit the fruit
             if pixelCoord:
                 # Draw a green circle around the index finger
                 # cv2.circle(image,(pixelCoord[0],pixelCoord[1]),25, GREEN, 5)
                 self.hit = self.check_fruit_intercept(pixelCoord[0], pixelCoord[1],fruitx,fruity)
-            return self.hit
-
-                
+            return self.hit           
     
     def run(self):
         """
         Main game loop. Runs until the 
         user presses "q".
         """    
-        
-        # x = random.randint((Orange2.shape[0] + 150 + Orange.shape[1]), 1280 - (Orange2.shape[1] + 150 + Orange.shape[1]))
         x_boundary  = 407
         y_boundary = 1280 - 411
         # Generates where the fruit will first spawn
@@ -131,13 +117,10 @@ class Game:
         self.hit = False
         inc = 20
         while self.video.isOpened():
-            
+            # Load the fruit images
             orange = cv2.imread('data/Orange.png', -1)
             orange2 = cv2.imread('data/Orange_slice_1.png', -1)
             # Get the current frame
-            frame = self.video.read()[1]
-            
-        
             frame = self.video.read()[1]
             # Calculating the courdinates of the fruit
             y1, y2 =  y , y + orange.shape[0]
@@ -145,8 +128,6 @@ class Game:
             y3,y4 = y, y + orange2.shape[0]
             y = y + inc
             x3,x4 = x, x + orange2.shape[1]
-    
-           
             # When the fruit is hit increases the score and calculates the courdinates for the split fruit images 
             # and the spawn courdinates for a new fruit
             if self.hit == True:
@@ -164,38 +145,20 @@ class Game:
                 x = random.randint((orange2.shape[0] + 100 + orange.shape[1]), 1280 -  (orange2.shape[1] + 100 + orange.shape[1]))
                 y = 0
                 self.hit = False 
-                print(self.score)
-                # print("hit") 
-            
-    
-
+                print(self.score)  
             # Saving the alpha values (transparencies)
             alpha = orange[:, :, 3] / 255.0
             self.overlay(y1, y2, x1, x2, alpha, orange, frame)
-        
             # Display the resulting frame
             cv2.imshow('Orange', frame)
-            
-        
             # Display the resulting frame for the second image of the split fruit if the fruit was hit
             if self.hit == True and x2 >= 100:
                 alpha = orange2[:, :, 3] / 255.0
-
-            
                 self.overlay(y3, y4, x3, x4, alpha, orange2, frame)
             cv2.imshow('Orange2', frame)
             self.hit = False 
-            
-
             # Convert it to an RGB image
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            #if self.level == 0 and self.score == 10:
-                    #end the game
-             #   end_time = time.time()
-             #   print("Time taken to kill 10 enemies: ", end_time - self.start_time)
-              #  self.video.release
-             #   self.level = 1
             # Convert the image to a readable format and find the hands
             to_detect = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
             results = self.detector.detect(to_detect)
@@ -206,12 +169,13 @@ class Game:
             fx = fx/2
             self.hit = self.check_fruit_kill(image, results,fx,fy)
             image = cv2.flip(image, 1)
-            cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = GREEN,thickness = 2)
+            cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = RED,thickness = 2)
             # Change the color of the frame back
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imshow("Fruit Ninja", image)
             # Break the loop if the user presses 'q'
             if cv2.waitKey(50) & 0xFF == ord('q'):
+                print("Final Score:")
                 print(self.score)
                 break   
         self.video.release
