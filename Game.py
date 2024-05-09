@@ -169,7 +169,7 @@ class Game:
             fx = fx/2
             self.hit = self.check_fruit_kill(image, results,fx,fy)
             image = cv2.flip(image, 1)
-            cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = RED,thickness = 2)
+            cv2.putText(image, str(self.score), (50, 50), fontFace= cv2.FONT_HERSHEY_SIMPLEX,fontScale= 1,color = GREEN,thickness = 2)
             # Change the color of the frame back
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imshow("Fruit Ninja", image)
