@@ -1,8 +1,6 @@
 import cv2
 import random
 import mediapipe as mp
-from mediapipe import solutions
-from mediapipe.framework.formats import landmark_pb2
 
 # Score text color. Green is the middle channel, so it is identical in BGR and
 # RGB; the unused RED/BLUE constants (which were RGB, not the BGR OpenCV expects)
@@ -96,32 +94,7 @@ class Game:
         options = HandLandmarkerOptions(base_options=base_options,
                                                 num_hands=2)
         self.detector = HandLandmarker.create_from_options(options)
-        # Loads video
         self.video = cv2.VideoCapture(1)
-
-    def draw_landmarks_on_hand(self, image, detection_result):
-        """
-        Draws all the landmarks on the hand
-        Args:
-            image (Image): Image to draw on
-            detection_result (HandLandmarkerResult): HandLandmarker detection results
-        """
-        # Get a list of the landmarks
-        hand_landmarks_list = detection_result.hand_landmarks
-        # Loop through the detected hands to visualize.
-        for idx in range(len(hand_landmarks_list)):
-            hand_landmarks = hand_landmarks_list[idx]
-            # Save the landmarks into a NormalizedLandmarkList
-            hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            hand_landmarks_proto.landmark.extend([
-            landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmarks
-            ])
-            # Draw the landmarks on the hand
-            DrawingUtil.draw_landmarks(image,
-                                       hand_landmarks_proto,
-                                       solutions.hands.HAND_CONNECTIONS,
-                                       solutions.drawing_styles.get_default_hand_landmarks_style(),
-                                       solutions.drawing_styles.get_default_hand_connections_style())
 
     def check_fruit_intercept(self, finger_x, finger_y, fruit_x, fruit_y):
         """
@@ -167,7 +140,6 @@ class Game:
         """
         fruit = Fruit(self.fruit_whole, self.fruit_piece)
         while self.video.isOpened():
-            # Get the current frame
             frame = self.video.read()[1]
             frame_height = frame.shape[0]
 
