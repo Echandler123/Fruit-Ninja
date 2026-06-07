@@ -1,5 +1,3 @@
-# Elijah Chandler
-# 5/18/24
 import cv2
 import random
 import mediapipe as mp
@@ -12,10 +10,12 @@ from mediapipe.framework.formats import landmark_pb2
 SCORE_COLOR = (0, 255, 0)
 
 # --- Gameplay tuning -------------------------------------------------------
-FALL_INCREMENT = 40      # pixels the fruit drops each frame
-HIT_RADIUS = 100         # max fingertip-to-fruit distance (px) that counts as a slice
-FRAME_WIDTH = 1280       # assumed frame width used for the spawn math
-SPAWN_EDGE_GAP = 100     # horizontal padding kept clear of the frame edges
+FALL_INCREMENT = 40         # pixels the fruit drops each frame
+HIT_RADIUS = 100            # max fingertip-to-fruit distance (px) that counts as a slice
+FRAME_WIDTH = 1280          # assumed frame width used for the spawn math
+SPAWN_EDGE_GAP = 100        # horizontal padding kept clear of the frame edges
+MIN_RESPAWN_DISTANCE = 200  # min horizontal gap (px) from where a fruit died, so the
+                            # player can't camp a finger and rack up easy hits
 
 # Original hardcoded bounds for the very first spawn (kept as-is so the game
 # plays identically; later respawns use the image-derived bounds below).
@@ -59,8 +59,22 @@ class Fruit:
         self.y += FALL_INCREMENT
 
     def respawn(self):
-        """Send the fruit back to the top at a new random x."""
-        self.x = random.randint(self.spawn_min, self.spawn_max)
+        """Send the fruit to the top at a new random x, kept at least
+        MIN_RESPAWN_DISTANCE from where it just died so the player has to move
+        instead of slicing back-to-back in one spot.
+
+        Spawns in the band to the left or right of the death position; if the
+        range is too narrow for either band, falls back to anywhere on screen.
+        """
+        previous_x = self.x
+        left_band = (self.spawn_min, previous_x - MIN_RESPAWN_DISTANCE)
+        right_band = (previous_x + MIN_RESPAWN_DISTANCE, self.spawn_max)
+        bands = [(lo, hi) for lo, hi in (left_band, right_band) if lo <= hi]
+        if bands:
+            lo, hi = random.choice(bands)
+            self.x = random.randint(lo, hi)
+        else:
+            self.x = random.randint(self.spawn_min, self.spawn_max)
         self.y = 0
 
     def center(self):
@@ -74,9 +88,9 @@ class Game:
         self.score = 0
         # Load the fruit sprites once (RGBA) instead of re-reading from disk
         # every frame inside the game loop.
-        self.fruit_whole = cv2.imread('data/Orange.png', -1)
-        self.fruit_piece = cv2.imread('data/Orange_slice_1.png', -1)
-        self.fruit_sliced = cv2.imread('data/Orange_slice_2.png', -1)
+        self.fruit_whole = cv2.imread('assets/Orange.png', -1)
+        self.fruit_piece = cv2.imread('assets/Orange_slice_1.png', -1)
+        self.fruit_sliced = cv2.imread('assets/Orange_slice_2.png', -1)
         # Create the hand detector
         base_options = BaseOptions(model_asset_path='data/hand_landmarker.task')
         options = HandLandmarkerOptions(base_options=base_options,
@@ -87,7 +101,6 @@ class Game:
 
     def draw_landmarks_on_hand(self, image, detection_result):
         """
-        Code from the FingerTrackingGame lab
         Draws all the landmarks on the hand
         Args:
             image (Image): Image to draw on

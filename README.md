@@ -14,7 +14,7 @@ Dependencies:
 pip install opencv-python mediapipe
 ```
 
-The game expects a `data/` directory containing the fruit sprites (`Orange.png`, `Orange_slice_1.png`, `Orange_slice_2.png`) and the MediaPipe hand-landmarker model file (`hand_landmarker.task`).
+The game expects an `assets/` directory containing the fruit sprites (`Orange.png`, `Orange_slice_1.png`, `Orange_slice_2.png`) and a `data/` directory containing the MediaPipe hand-landmarker model file (`hand_landmarker.task`).
 
 Run it from the project root:
 
