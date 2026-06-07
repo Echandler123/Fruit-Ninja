@@ -12,10 +12,9 @@ from mediapipe.framework.formats import landmark_pb2
 SCORE_COLOR = (0, 255, 0)
 
 # --- Gameplay tuning -------------------------------------------------------
-FALL_INCREMENT = 20      # pixels the fruit drops each frame
+FALL_INCREMENT = 40      # pixels the fruit drops each frame
 HIT_RADIUS = 100         # max fingertip-to-fruit distance (px) that counts as a slice
 FRAME_WIDTH = 1280       # assumed frame width used for the spawn math
-BOTTOM_Y = 480           # y at which an unsliced fruit resets to the top
 SPAWN_EDGE_GAP = 100     # horizontal padding kept clear of the frame edges
 
 # Original hardcoded bounds for the very first spawn (kept as-is so the game
@@ -157,6 +156,7 @@ class Game:
         while self.video.isOpened():
             # Get the current frame
             frame = self.video.read()[1]
+            frame_height = frame.shape[0]
 
             # Capture where the fruit is drawn this frame before it moves: the
             # sprite is rendered at the position from the end of the previous
@@ -170,7 +170,8 @@ class Game:
                 self.score += 1
                 print(self.score)
                 fruit.respawn()
-            elif fruit.y == BOTTOM_Y:
+            elif fruit.y >= frame_height:
+                # The fruit has fallen all the way off the bottom edge.
                 fruit.respawn()
                 print(self.score)
 
@@ -214,14 +215,25 @@ class Game:
 
     def overlay(self, frame, sprite, top, left):
         """Alpha-blend an RGBA sprite onto the frame with its top-left at
-        (left, top)."""
+        (left, top), clipping to the frame so a fruit at the edge still blends
+        the visible part instead of raising a shape mismatch."""
+        frame_height, frame_width = frame.shape[:2]
         height, width = sprite.shape[:2]
         bottom, right = top + height, left + width
-        alpha = sprite[:, :, 3] / 255.0
+        # Region of the frame the sprite overlaps, clamped to the frame.
+        fr_top, fr_left = max(top, 0), max(left, 0)
+        fr_bottom, fr_right = min(bottom, frame_height), min(right, frame_width)
+        if fr_top >= fr_bottom or fr_left >= fr_right:
+            return frame  # fully off-screen, nothing to draw
+        # Matching region within the sprite.
+        sp_top, sp_left = fr_top - top, fr_left - left
+        sp_bottom, sp_right = sp_top + (fr_bottom - fr_top), sp_left + (fr_right - fr_left)
+        sprite_region = sprite[sp_top:sp_bottom, sp_left:sp_right]
+        alpha = sprite_region[:, :, 3] / 255.0
         for c in range(0, 3):
-            frame[top:bottom, left:right, c] = (
-                alpha * sprite[:, :, c] +
-                (1.0 - alpha) * frame[top:bottom, left:right, c])
+            frame[fr_top:fr_bottom, fr_left:fr_right, c] = (
+                alpha * sprite_region[:, :, c] +
+                (1.0 - alpha) * frame[fr_top:fr_bottom, fr_left:fr_right, c])
         return frame
 
 
