@@ -10,15 +10,16 @@ SCORE_COLOR = (0, 255, 0)
 # --- Gameplay tuning -------------------------------------------------------
 FALL_INCREMENT = 40         # pixels the fruit drops each frame
 HIT_RADIUS = 100            # max fingertip-to-fruit distance (px) that counts as a slice
-FRAME_WIDTH = 1280          # assumed frame width used for the spawn math
 SPAWN_EDGE_GAP = 100        # horizontal padding kept clear of the frame edges
 MIN_RESPAWN_DISTANCE = 200  # min horizontal gap (px) from where a fruit died, so the
                             # player can't camp a finger and rack up easy hits
 
-# Original hardcoded bounds for the very first spawn (kept as-is so the game
-# plays identically; later respawns use the image-derived bounds below).
-FIRST_SPAWN_MIN = 407
-FIRST_SPAWN_MAX = FRAME_WIDTH - 411  # 869
+# The very first spawn keeps the fruit in a centered band (roughly the middle
+# third of the frame). Expressed as fractions of the real frame width so it
+# stays centered at any resolution; at 1280 wide these resolve to 407 .. 869,
+# matching the original hardcoded bounds.
+FIRST_SPAWN_MIN_FRACTION = 0.318
+FIRST_SPAWN_MAX_FRACTION = 0.679
 
 # When a fruit is sliced it is drawn as two halves: the main sprite shifts left
 # and a smaller piece flies to the right.
@@ -41,14 +42,17 @@ class Fruit:
     sprite only affects how far in from the edges a respawn can land.
     """
 
-    def __init__(self, whole_sprite, piece_sprite):
+    def __init__(self, whole_sprite, piece_sprite, frame_width):
         self.height, self.width = whole_sprite.shape[:2]
         piece_h, piece_w = piece_sprite.shape[:2]
-        # Respawn bounds keep the whole fruit and its flying piece on screen.
+        # Respawn bounds keep the whole fruit and its flying piece on screen,
+        # derived from the camera's actual frame width.
         self.spawn_min = piece_h + SPAWN_EDGE_GAP + self.width
-        self.spawn_max = FRAME_WIDTH - (piece_w + SPAWN_EDGE_GAP + self.width)
-        # First spawn uses the original fixed bounds.
-        self.x = random.randint(FIRST_SPAWN_MIN, FIRST_SPAWN_MAX)
+        self.spawn_max = frame_width - (piece_w + SPAWN_EDGE_GAP + self.width)
+        # First spawn uses a centered band derived from the real frame width.
+        first_min = int(frame_width * FIRST_SPAWN_MIN_FRACTION)
+        first_max = int(frame_width * FIRST_SPAWN_MAX_FRACTION)
+        self.x = random.randint(first_min, first_max)
         self.y = 0
         self.sliced = False
 
@@ -122,25 +126,34 @@ class Game:
         """
         image_height, image_width = image.shape[:2]
         hand_landmarks_list = detection_result.hand_landmarks
-        # Check the first detected hand's index fingertip.
+        # Test every detected hand's index fingertip; any hand within range
+        # slices the fruit.
         for hand_landmarks in hand_landmarks_list:
             finger = hand_landmarks[HandLandmarkPoints.INDEX_FINGER_TIP.value]
             # Map the normalized landmark back to screen pixels.
             pixel_coord = DrawingUtil._normalized_to_pixel_coordinates(
                 finger.x, finger.y, image_width, image_height)
-            if pixel_coord:
-                return self.check_fruit_intercept(
-                    pixel_coord[0], pixel_coord[1], fruit_x, fruit_y)
-            return False
+            if pixel_coord is None:
+                continue
+            if self.check_fruit_intercept(
+                    pixel_coord[0], pixel_coord[1], fruit_x, fruit_y):
+                return True
         return False
 
     def run(self):
         """
         Main game loop. Runs until the user presses "q".
         """
-        fruit = Fruit(self.fruit_whole, self.fruit_piece)
+        # Pull one frame up front so the spawn bounds use the camera's real
+        # width: some backends report a stale default (or 0) for
+        # CAP_PROP_FRAME_WIDTH until the first read().
+        success, frame = self.video.read()
+        if not success or frame is None:
+            self.video.release()
+            return
+        frame_width = frame.shape[1]
+        fruit = Fruit(self.fruit_whole, self.fruit_piece, frame_width)
         while self.video.isOpened():
-            frame = self.video.read()[1]
             frame_height = frame.shape[0]
 
             # Capture where the fruit is drawn this frame before it moves: the
@@ -194,6 +207,11 @@ class Game:
             if cv2.waitKey(50) & 0xFF == ord('q'):
                 print("Final Score:")
                 print(self.score)
+                break
+
+            # Pull the next frame; stop if the camera stops delivering.
+            success, frame = self.video.read()
+            if not success or frame is None:
                 break
         self.video.release()
         cv2.destroyAllWindows()
